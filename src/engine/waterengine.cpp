@@ -1,5 +1,4 @@
 #include "waterengine.h"
-#include "vector.h"
 
 #ifndef __APPLE__
 extern "C"
@@ -14,12 +13,37 @@ extern "C"
 
 #define DIM 50
 
+WaterEngine::Wave::Wave() {}
+WaterEngine::Wave::Wave(const WaveParameters &p)
+{
+    float wl = p.wavelength;
+    wl = frand() * (2.f * wl - 0.5f * wl) + 0.5f * wl;
+
+    static float angle = frand() * M_PI_2 - M_PI_4;
+    float c = cos(angle);
+    float s = sin(angle);
+    Vector2 dir(c * p.wave_dir.x - s * p.wave_dir.y,
+                s * p.wave_dir.x + c * p.wave_dir.x);
+
+    float st = p.steepness;
+    st = frand() * (2.f * st - 0.5f * st) + 0.5f * st;
+
+    params.wavelength = wl;
+    params.steepness = st;
+    params.kAmpOverLen = p.kAmpOverLen;
+    params.wave_dir = dir;
+}
+
 WaterEngine::WaterEngine()
 {
     // initialize parameters
-    m_params.kWavelength = 5.f;
-    m_params.kSteepness = 0.8f;
+    m_params.wavelength = 5.f;
+    m_params.steepness = 0.8f;
     m_params.kAmpOverLen = 10.f;
+    m_params.wave_dir = Vector2(-1.f, 1.f).unit();
+
+    // initialize waves
+    initializeWaves();
 
     // build vbo with base mesh
     unsigned int size = (DIM)*(DIM)*4;
@@ -57,21 +81,47 @@ WaterEngine::WaterEngine()
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     m_count = size;
     delete[] vertices;
+
+    m_waveprog = new QGLShaderProgram();
+    m_waveprog->addShaderFromSourceCode(QGLShader::Vertex,
+            "void main(void)"
+            "{"
+            "   gl_Position = ftransform();"
+            "}");
+
+    m_waveprog->addShaderFromSourceCode(QGLShader::Fragment,
+            "void main(void)"
+            "{"
+            "   gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);"
+            "}");
+    m_waveprog->link();
 }
 
 WaterEngine::~WaterEngine()
 {
     glDeleteBuffers(1, &m_vbo);
+    delete m_waveprog;
+}
+
+void WaterEngine::initializeWaves()
+{
+    for (int i = 0; i < 4; i++) {
+        m_geo_waves[i] = Wave(m_params);
+    }
 }
 
 void WaterEngine::render(float elapsed_time)
 {
+    m_waveprog->bind();
+
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, 0);
     glDrawArrays(GL_QUADS, 0, m_count);
     glDisableClientState(GL_VERTEX_ARRAY);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    m_waveprog->release();
 }
 
 
