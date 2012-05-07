@@ -10,17 +10,17 @@ QMAKE_CFLAGS -= -O2
 QMAKE_CXXFLAGS += -O3
 QMAKE_CXXFLAGS -= -O2
 
-DEPENDPATH += src
-INCLUDEPATH += src
+DEPENDPATH += src src/ui src/misc src/engine
+INCLUDEPATH += src src/ui src/misc src/engine
 
 SOURCES += main.cpp \
-           mainwindow.cpp \
-           glwidget.cpp \
-           src/camera.cpp \
-           src/waterengine.cpp
+           src/ui/mainwindow.cpp \
+           src/ui/glwidget.cpp \
+           src/misc/camera.cpp \
+           src/engine/waterengine.cpp
 
-HEADERS += mainwindow.h \
-           glwidget.h \
-           src/camera.h \
-           src/vector.h \
-           src/waterengine.h
+HEADERS += src/ui/mainwindow.h \
+           src/ui/glwidget.h \
+           src/misc/camera.h \
+           src/misc/vector.h \
+           src/engine/waterengine.h
