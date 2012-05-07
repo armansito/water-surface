@@ -10,6 +10,7 @@ struct WaveParameters
 {
     float wavelength;
     float steepness;
+    float speed;
     float kAmpOverLen;
     Vector2 wave_dir; 
 };

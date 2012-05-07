@@ -30,6 +30,7 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
 
     params.wavelength = wl;
     params.steepness = st;
+    params.speed = p.speed;
     params.kAmpOverLen = p.kAmpOverLen;
     params.wave_dir = dir;
 }
@@ -37,9 +38,10 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
 WaterEngine::WaterEngine()
 {
     // initialize parameters
-    m_params.wavelength = 5.f;
+    m_params.wavelength = 30.f;
     m_params.steepness = 0.8f;
-    m_params.kAmpOverLen = 10.f;
+    m_params.kAmpOverLen = 0.2f;
+    m_params.speed = 1.f;
     m_params.wave_dir = Vector2(-1.f, 1.f).unit();
 
     // initialize waves
@@ -84,15 +86,49 @@ WaterEngine::WaterEngine()
 
     m_waveprog = new QGLShaderProgram();
     m_waveprog->addShaderFromSourceCode(QGLShader::Vertex,
+            "struct Wave"
+            "{"
+            "   float wavelength;"
+            "   float steepness;"
+            "   float speed;"
+            "   float kAmpOverLen;"
+            "   vec2 direction;"
+            "};"
+
+            "void wave_function(in Wave waves[4], in float time, in vec3 pos,"
+            "                   out vec3 P, out vec3 N, out vec3 B, out vec3 T)"
+            "{"
+            "   float PI = 3.14159265358979323846264;"
+            "   P = pos;"
+            "   for (int i = 0; i < 4; i++) {"
+            "       float A = 16.0 * 0.04;"//waves[i].wavelength * waves[i].kAmpOverLen;"  // Amplitude
+            "       float omega = 2.0 * PI / 16.0;"//waves[i].wavelength;"          // Frequency
+            "       float phi = 4.0 * omega;"//waves[i].speed * omega;"                    // Phase
+            "       float Qi = 0.5/(omega * A * 4.0);"//waves[i].steepness/(omega * A * 4.0);"
+
+            "       float term = omega * dot(normalize(vec2(1.0, 0.5)), vec2(pos.x, pos.z)) + phi * time;"
+            "       float C = cos(term);"
+            "       float S = sin(term);"
+            "       P += vec3(Qi * A * 1.0 * C,"
+            "                 A * S,"
+            "                 Qi * A * 0.5 * C);"
+            "   }"
+            "}"
+
+            "uniform Wave waves[4];"
+            "uniform float time;"
+
             "void main(void)"
             "{"
-            "   gl_Position = ftransform();"
+            "   vec3 P, N, B, T;"
+            "   wave_function(waves, time, gl_Vertex.xyz, P, N, B, T);"
+            "   gl_Position = gl_ModelViewProjectionMatrix * vec4(P.xyz, 1.0);"
             "}");
 
     m_waveprog->addShaderFromSourceCode(QGLShader::Fragment,
             "void main(void)"
             "{"
-            "   gl_FragColor = vec4(1.0, 0.0, 1.0, 1.0);"
+            "   gl_FragColor = vec4(1.0);"
             "}");
     m_waveprog->link();
 }
@@ -113,6 +149,8 @@ void WaterEngine::initializeWaves()
 void WaterEngine::render(float elapsed_time)
 {
     m_waveprog->bind();
+    m_waveprog->setUniformValue("time", elapsed_time);
+    m_waveprog->setUniformValueArray("waves", (const GLfloat *)m_geo_waves, 4, sizeof(Wave)/sizeof(float));
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnableClientState(GL_VERTEX_ARRAY);

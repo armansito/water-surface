@@ -8,6 +8,7 @@ GLWidget::GLWidget(QWidget *parent) : QGLWidget(parent)
     connect(&m_timer, SIGNAL(timeout()), this, SLOT(tick()));
 
     m_camera = new Camera(45.f, 1.f, 0.1f, 1000.f);
+    m_camera->setZoom(30.f);
     m_engine = NULL;
 }
 
