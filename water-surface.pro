@@ -1,6 +1,6 @@
 QT += core gui opengl
 
-TARGET = water
+TARGET = water-surface
 TEMPLATE = app
 
 CONFIG += debug
