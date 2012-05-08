@@ -3,6 +3,8 @@ QT += core gui opengl
 TARGET = water-surface
 TEMPLATE = app
 
+!mac:LIBS += -lGLU
+
 CONFIG += debug
 
 QMAKE_CFLAGS += -O3

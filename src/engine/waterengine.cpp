@@ -1,4 +1,6 @@
 #include "waterengine.h"
+#include <iostream>
+#include <stdlib.h>
 
 #ifndef __APPLE__
 extern "C"
@@ -13,6 +15,7 @@ extern "C"
 
 #define DIM 100
 #define UNIT 2.f
+#define TEXSIZE 256
 
 WaterEngine::Wave::Wave() {}
 WaterEngine::Wave::Wave(const WaveParameters &p)
@@ -24,25 +27,28 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
     float c = cos(angle);
     float s = sin(angle);
     Vector2 dir(c * p.wave_dir.x - s * p.wave_dir.y,
-                s * p.wave_dir.x + c * p.wave_dir.x);
+                s * p.wave_dir.x + c * p.wave_dir.y);
 
     float st = p.steepness;
 
     params.wavelength = wl;
     params.steepness = st;
-    params.speed = p.speed;
+    params.speed = sqrt(9.81f * 2.f*M_PI/wl)*wl*p.speed; 
     params.kAmpOverLen = p.kAmpOverLen;
     params.wave_dir = dir;
 }
 
 WaterEngine::WaterEngine()
 {
+    // seed random
+    srand(time(0));
+
     // initialize parameters
     m_params.wavelength = 16.f;
     m_params.steepness = 1.f;
     m_params.kAmpOverLen = 0.05f;
-    m_params.speed = 4.f;
-    m_params.wave_dir = Vector2(1.f, 0.5f).unit();
+    m_params.speed = 0.1f;
+    m_params.wave_dir = Vector2(1.f, 0.8f).unit();
 
     // initialize waves
     initializeWaves();
@@ -84,6 +90,43 @@ WaterEngine::WaterEngine()
     m_count = size;
     delete[] vertices;
 
+    // setup the framebuffer for normal map generation
+    glEnable(GL_TEXTURE_2D);
+    glGenTextures(1, &m_normalmap);
+    glBindTexture(GL_TEXTURE_2D, m_normalmap);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEXSIZE, TEXSIZE, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    glGenFramebuffers(1, &m_nmfbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_nmfbo);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_normalmap, 0);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cout << "error: Problem creating framebuffer" << std::endl;
+        exit(0); 
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // shader program that generates the normal map
+    m_nmprog = new QGLShaderProgram();
+    m_nmprog->addShaderFromSourceCode(QGLShader::Fragment,
+            "uniform float time;"
+            "uniform float waves[90];"
+            
+            "void calc_normal(in vec2 uv, out vec3 N)"
+            "{"
+            "   float PI = 3.14159265358979323846264;"
+            "  " 
+            "}"
+
+            "void main(void)"
+            "{"
+            "}");
+
+    // shader program that produces the final render
     m_waveprog = new QGLShaderProgram();
     m_waveprog->addShaderFromSourceCode(QGLShader::Vertex,
 
@@ -128,18 +171,67 @@ WaterEngine::WaterEngine()
 WaterEngine::~WaterEngine()
 {
     glDeleteBuffers(1, &m_vbo);
+    glDeleteFramebuffers(1, &m_nmfbo);
+    glDeleteTextures(1, &m_normalmap);
     delete m_waveprog;
+    delete m_nmprog;
 }
 
 void WaterEngine::initializeWaves()
 {
+    // initialize geometric waves
     for (int i = 0; i < 4; i++) {
         m_geo_waves[i] = m_params;
+    }
+
+    // initialize normal map waves
+    for (int i = 0; i < 15; i++) {
+        m_nm_waves[i] = m_params;
+        m_nm_waves[i].params.wavelength = frand() * (1.f - 4.f/(float)TEXSIZE) + 4.f/(float)TEXSIZE;
     }
 }
 
 void WaterEngine::render(float elapsed_time)
 {
+    /* generate normal map */
+    // store current viewport
+    int vp[4];
+    glGetIntegerv(GL_VIEWPORT, vp);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO: for now
+    
+    // set viewport to normal map dimensions
+    glViewport(0, 0, TEXSIZE, TEXSIZE);
+    glBindFramebuffer(GL_FRAMEBUFFER, m_nmfbo);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glPushMatrix();
+    glLoadIdentity();
+    glBegin(GL_QUADS);
+    glColor3f(1.f, 0.f, 0.f); glVertex3f(-0.5f, -0.5f, -1.f);
+    glColor3f(1.f, 1.f, 0.f); glVertex3f( 0.5f, -0.5f, -1.f);
+    glColor3f(0.f, 1.f, 0.f); glVertex3f( 0.5f,  0.5f, -1.f);
+    glColor3f(0.f, 0.f, 1.f); glVertex3f(-0.5f,  0.5f, -1.f);
+    glEnd();
+    glPopMatrix();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // === TODO: for display ===
+    // restore viewport
+    glViewport(vp[0], vp[1], vp[2], vp[3]);
+
+    glColor3f(1.f, 1.f, 1.f);
+    glBindTexture(GL_TEXTURE_2D, m_normalmap);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.f, 0.f); glVertex3f(-0.5f, -0.5f, -1.f);
+    glTexCoord2f(1.f, 0.f); glVertex3f( 0.5f, -0.5f, -1.f);
+    glTexCoord2f(1.f, 1.f); glVertex3f( 0.5f,  0.5f, -1.f);
+    glTexCoord2f(0.f, 1.f); glVertex3f(-0.5f,  0.5f, -1.f);
+    glEnd();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    // ===== TODO: =====
+
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // TODO: for now
+
+    /* render waves */
     m_waveprog->bind();
     m_waveprog->setUniformValue("time", elapsed_time);
     m_waveprog->setUniformValueArray("waves", (const GLfloat *)m_geo_waves, 4 * sizeof(Wave)/sizeof(float), 1);

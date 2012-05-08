@@ -1,5 +1,13 @@
 #include "camera.h"
-#include <qgl.h>
+
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif
+
 
 Camera::Camera(float fovy, float aspect, float near, float far) : m_fovy(fovy), m_aspect(aspect), m_near(near), m_far(far)
 {

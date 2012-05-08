@@ -36,12 +36,12 @@ private:
 
     void initializeWaves();
 
-    Wave m_geo_waves[4]; // geometric waves
-
+    Wave m_geo_waves[4], // geometric waves
+         m_nm_waves[15]; // normal map waves
     WaveParameters m_params;
     unsigned int m_count;
-    GLuint m_vbo;
-    QGLShaderProgram *m_waveprog;
+    GLuint m_vbo, m_normalmap, m_nmfbo;
+    QGLShaderProgram *m_waveprog, *m_nmprog;
 };
 
 #endif // WATERENGINE_H
