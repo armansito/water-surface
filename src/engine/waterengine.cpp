@@ -39,7 +39,7 @@ WaterEngine::WaterEngine()
 {
     // initialize parameters
     m_params.wavelength = 16.f;
-    m_params.steepness = 0.8f;
+    m_params.steepness = 1.f;
     m_params.kAmpOverLen = 0.05f;
     m_params.speed = 4.f;
     m_params.wave_dir = Vector2(1.f, 0.5f).unit();
@@ -101,10 +101,10 @@ WaterEngine::WaterEngine()
             "   float PI = 3.14159265358979323846264;"
             "   P = pos;"
             "   for (int i = 0; i < 24; i += 6) {"
-            "       float A = waves[i] * waves[i+3];"  // Amplitude
-            "       float omega = 2.0 * PI / waves[i];"          // Frequency
-            "       float phi = waves[i+2] * omega;"                    // Phase
-            "       float Qi = waves[i+1]/(omega * A * 4.0);"
+            "       float A = waves[i] * waves[i+3];"         // Amplitude
+            "       float omega = 2.0 * PI / waves[i];"       // Frequency
+            "       float phi = waves[i+2] * omega;"          // Phase
+            "       float Qi = waves[i+1]/(omega * A * 4.0);" // Steepness
 
             "       float term = omega * dot(vec2(waves[i+4], waves[i+5]), vec2(pos.x, pos.z)) + phi * time;"
             "       float C = cos(term);"
