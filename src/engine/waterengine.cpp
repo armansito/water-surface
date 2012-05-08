@@ -86,14 +86,6 @@ WaterEngine::WaterEngine()
 
     m_waveprog = new QGLShaderProgram();
     m_waveprog->addShaderFromSourceCode(QGLShader::Vertex,
-            "struct Wave"
-            "{"
-            "   float wavelength;"
-            "   float steepness;"
-            "   float speed;"
-            "   float kAmpOverLen;"
-            "   vec2 direction;"
-            "};"
 
             "void wave_function(in float waves[24], in float time, in vec3 pos,"
             "                   out vec3 P, out vec3 N, out vec3 B, out vec3 T)"
@@ -142,7 +134,7 @@ WaterEngine::~WaterEngine()
 void WaterEngine::initializeWaves()
 {
     for (int i = 0; i < 4; i++) {
-        m_geo_waves[i] = Wave(m_params);
+        m_geo_waves[i] = m_params;
     }
 }
 
