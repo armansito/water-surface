@@ -14,7 +14,7 @@ extern "C"
 #endif
 
 #define DIM 100
-#define UNIT 2.f
+#define UNIT 1.f
 #define TEXSIZE 256
 #define GW GEOMETRIC_WAVES
 #define NMW NORMALMAP_WAVES
@@ -171,22 +171,73 @@ WaterEngine::WaterEngine()
             "                 A * S,"
             "                 Qi * A * waves[i+5] * C);"
             "   }"
+            "   B = vec3(0.0);"
+            "   T = vec3(0.0);"
+            "   N = vec3(0.0);"
+            "   for (int i = 0; i < 24; i += 6) {"
+            "       float A = waves[i] * waves[i+3];"         // Amplitude
+            "       float omega = 2.0 * PI / waves[i];"       // Frequency
+            "       float phi = waves[i+2] * omega;"          // Phase
+            "       float Qi = waves[i+1]/(omega * A * 4.0);" // Steepness
+
+            "       float WA = omega * A;"
+            "       float term = omega * dot(vec2(waves[i+4], waves[i+5]), vec2(P.x, P.z)) + phi * time;"
+            "       float C = cos(term);"
+            "       float S = sin(term);"
+            "       B += vec3 (Qi * waves[i+4]*waves[i+4] * WA * S,"
+            "                  Qi * waves[i+4] * waves[i+5] * WA * S,"
+            "                  waves[i+4] * WA * C);"
+
+            "       T += vec3 (Qi * waves[i+4] * waves[i+5] * WA * S,"
+            "                  Qi * waves[i+5] * waves[i+5] * WA * S,"
+            "                  waves[i+5] * WA * C);"
+
+            "       N += vec3 (waves[i+4] * WA * C,"
+            "                  waves[i+5] * WA * C,"
+            "                  Qi * WA * S);"
+            "   }"
+            "   B = normalize(vec3(1.0 - B.x, -B.y, B.z));"
+            "   T = normalize(vec3(-T.x, 1.0 - T.y, T.z));"
+            "   N = normalize(vec3(-N.x, -N.y, 1.0 - N.z));"
             "}"
             
             "uniform float waves[24];"
             "uniform float time;"
+            "uniform vec3 light;"
 
+            "varying vec2 texcoord;"
+            "varying vec3 lightv;"
+            "varying vec3 viewv;"
             "void main(void)"
             "{"
             "   vec3 P, N, B, T;"
             "   wave_function(waves, time, gl_Vertex.xyz, P, N, B, T);"
-            "   gl_Position = gl_ModelViewProjectionMatrix * vec4(P.xyz, 1.0);"
+            "   lightv = vec3(dot(light, B),"
+            "                 dot(light, T),"
+            "                 dot(light, N));"
+            "   lightv = normalize(lightv);"
+            "   vec3 pos = (gl_ModelViewMatrix * vec4(P.xyz, 1.0)).xyz;"
+            "   viewv = vec3(dot(pos, B),"
+            "                dot(pos, T),"
+            "                dot(pos, N));"
+            "   viewv = normalize(viewv);"
+            "   texcoord = vec2(P.x, P.z) * 0.5 + 0.5;"
+            "   gl_Position = gl_ProjectionMatrix * vec4(pos, 1.0);"
             "}");
 
     m_waveprog->addShaderFromSourceCode(QGLShader::Fragment,
+            "uniform sampler2D normalmap;"
+
+            "varying vec2 texcoord;"
+            "varying vec3 lightv;"
+            "varying vec3 viewv;"
             "void main(void)"
             "{"
-            "   gl_FragColor = vec4(1.0);"
+            "   vec3 N = texture2D(normalmap, texcoord).xyz;"// * 2.0 - 1.0;"
+//            "   N = vec3(N.x, N.z, N.y);"
+            "   vec3 diffuse = vec3(0.0, 0.0, 1.0) * clamp(dot(N, lightv), 0.0, 1.0);"
+            "   vec3 specular = vec3(1.0) * pow(clamp(dot(reflect(lightv, N), viewv), 0.0, 1.0), 5.0);"
+            "   gl_FragColor = vec4(N, 1.0);"
             "}");
     m_waveprog->link();
 }
@@ -238,7 +289,6 @@ void WaterEngine::render(float elapsed_time)
     m_nmprog->setUniformValue("time", elapsed_time);
     m_nmprog->setUniformValueArray("waves", (const GLfloat *)m_nm_waves, NMW * sizeof(Wave)/sizeof(float), 1);
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); // TODO: for now
     glBindFramebuffer(GL_FRAMEBUFFER, m_nmfbo);
     glClear(GL_COLOR_BUFFER_BIT);
     glPushMatrix();
@@ -268,15 +318,14 @@ void WaterEngine::render(float elapsed_time)
     glTexCoord2f(1.f, 1.f); glVertex3f( 0.5f,  0.5f, -1.f);
     glTexCoord2f(0.f, 1.f); glVertex3f(-0.5f,  0.5f, -1.f);
     glEnd();
-    glBindTexture(GL_TEXTURE_2D, 0);
     // ===== TODO: =====
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); // TODO: for now
 
     /* render waves */
     m_waveprog->bind();
     m_waveprog->setUniformValue("time", elapsed_time);
     m_waveprog->setUniformValueArray("waves", (const GLfloat *)m_geo_waves, GW * sizeof(Wave)/sizeof(float), 1);
+    m_waveprog->setUniformValue("light", 0.f, 100.f, 0.f);
+    m_waveprog->setUniformValue("normalmap", 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, m_vbo);
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -286,6 +335,7 @@ void WaterEngine::render(float elapsed_time)
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     m_waveprog->release();
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 

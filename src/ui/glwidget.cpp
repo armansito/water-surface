@@ -22,10 +22,9 @@ void GLWidget::initializeGL()
 {
     glClearColor(.6f, .6f, .6f, 1.f);
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     m_engine = new WaterEngine();
-
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     m_time.start();
     m_timer.start(1000/60);
