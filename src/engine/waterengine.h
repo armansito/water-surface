@@ -6,6 +6,9 @@
 
 #include "vector.h"
 
+#define GEOMETRIC_WAVES 4
+#define NORMALMAP_WAVES 50
+
 struct WaveParameters
 {
     float wavelength;
@@ -36,8 +39,8 @@ private:
 
     void initializeWaves();
 
-    Wave m_geo_waves[4], // geometric waves
-         m_nm_waves[15]; // normal map waves
+    Wave m_geo_waves[GEOMETRIC_WAVES], // geometric waves
+         m_nm_waves[NORMALMAP_WAVES]; // normal map waves
     WaveParameters m_params;
     unsigned int m_count;
     GLuint m_vbo, m_normalmap, m_nmfbo;
