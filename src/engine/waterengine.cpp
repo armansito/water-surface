@@ -42,13 +42,34 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
 
 WaterEngine::WaterEngine()
 {
+    // cornflower blue
+    glClearColor(0.39f, 0.58f, 0.93f, 1.f);
+
+    // enable fog
+    glFogi(GL_FOG_MODE, GL_EXP2);
+    GLfloat fogColor[] = { 0.39f, 0.58f, 0.93f, 1.f };
+    glFogfv(GL_FOG_COLOR, fogColor);
+    glFogf(GL_FOG_DENSITY, 0.015f);
+    glHint(GL_FOG_HINT, GL_DONT_CARE);
+    glFogf(GL_FOG_START, 200.f);
+    glFogf(GL_FOG_END, 1000.f);
+    glEnable(GL_FOG);
+    
+    // enable alpha blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // enable back face culling
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    
     // seed random
     srand(time(0));
 
     // initialize parameters
-    m_params.wavelength = 16.f;
-    m_params.steepness = 1.f;
-    m_params.kAmpOverLen = 0.05f;
+    m_params.wavelength = 10.f;
+    m_params.steepness = 0.8f;
+    m_params.kAmpOverLen = 0.03f;
     m_params.speed = 0.06f;
     m_params.wave_dir = Vector2(1.f, 0.8f).unit();
 
@@ -128,7 +149,7 @@ WaterEngine::WaterEngine()
             "       float phi = waves[i+2] * omega;"          // Phase
             "       float k = waves[i+1];"
             "       float term = omega * dot(vec2(waves[i+4], waves[i+5]), uv) + phi * time;"
-            "       float C = cos(term);"//(2.0*PI);"
+            "       float C = cos(term);"
             "       float S = sin(term);"
             "       float val = pow(0.5 * (S + 1.0), k - 1.0) * C;"
             "       val = omega * A * k * val;"
@@ -233,11 +254,12 @@ WaterEngine::WaterEngine()
             "varying vec3 viewv;"
             "void main(void)"
             "{"
-            "   vec3 N = texture2D(normalmap, texcoord).xyz;"// * 2.0 - 1.0;"
-//            "   N = vec3(N.x, N.z, N.y);"
-            "   vec3 diffuse = vec3(0.0, 0.0, 1.0) * clamp(dot(N, lightv), 0.0, 1.0);"
-            "   vec3 specular = vec3(1.0) * pow(clamp(dot(reflect(lightv, N), viewv), 0.0, 1.0), 5.0);"
-            "   gl_FragColor = vec4(N, 1.0);"
+            "   vec3 N = texture2D(normalmap, texcoord*0.125).xyz * 2.0 - 1.0;"
+            "   N = normalize(N);"
+            "   vec3 ambient = vec3(0.39, 0.43, 0.93);"
+            "   vec3 diffuse = vec3(0.0, 0.2, 1.0) * clamp(dot(N, lightv), 0.0, 1.0);"
+            "   vec3 specular = vec3(1.0) * pow(clamp(dot(reflect(lightv, N), viewv), 0.0, 1.0), 50.0);"
+            "   gl_FragColor = vec4(0.2 * ambient + 0.4* diffuse + specular, 1.0);"
             "}");
     m_waveprog->link();
 }
@@ -260,10 +282,10 @@ void WaterEngine::initializeWaves()
 
     // initialize normal map waves
     for (int i = 0; i < NMW; i++) {
-        float wl = m_nm_waves[i].params.wavelength = frandf() * 0.5f + 0.3;
-        m_nm_waves[i].params.wave_dir = Vector2::randomDirection();
-        m_nm_waves[i].params.steepness = frandf() * 2.f + 1.f;
-        m_nm_waves[i].params.speed = 0.1f * sqrt(M_PI/wl);
+        float wl = m_nm_waves[i].params.wavelength = (frandf() * 0.5f + 0.3f);
+        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection()*3.f).floor() * wl;
+        m_nm_waves[i].params.steepness = 5.f*(frandf() * 2.f + 1.f);
+        m_nm_waves[i].params.speed = 0.05f * sqrt(M_PI/wl);
         m_nm_waves[i].params.kAmpOverLen = 0.02f;
     }
 }
@@ -302,24 +324,15 @@ void WaterEngine::render(float elapsed_time)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     m_nmprog->release();
 
-    // === TODO: for display ===
     // restore viewport and projection
     glViewport(vp[0], vp[1], vp[2], vp[3]);
     glMatrixMode(GL_PROJECTION);
     glMultMatrixf(proj);
     glMatrixMode(GL_MODELVIEW);
 
+    /* render waves */
     glColor3f(1.f, 1.f, 1.f);
     glBindTexture(GL_TEXTURE_2D, m_normalmap);
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.f, 0.f); glVertex3f(-0.5f, -0.5f, -1.f);
-    glTexCoord2f(1.f, 0.f); glVertex3f( 0.5f, -0.5f, -1.f);
-    glTexCoord2f(1.f, 1.f); glVertex3f( 0.5f,  0.5f, -1.f);
-    glTexCoord2f(0.f, 1.f); glVertex3f(-0.5f,  0.5f, -1.f);
-    glEnd();
-    // ===== TODO: =====
-
-    /* render waves */
     m_waveprog->bind();
     m_waveprog->setUniformValue("time", elapsed_time);
     m_waveprog->setUniformValueArray("waves", (const GLfloat *)m_geo_waves, GW * sizeof(Wave)/sizeof(float), 1);

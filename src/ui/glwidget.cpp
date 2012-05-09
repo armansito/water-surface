@@ -20,10 +20,6 @@ GLWidget::~GLWidget()
 
 void GLWidget::initializeGL()
 {
-    glClearColor(.6f, .6f, .6f, 1.f);
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
-
     m_engine = new WaterEngine();
 
     m_time.start();
