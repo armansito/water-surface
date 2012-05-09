@@ -15,7 +15,7 @@ extern "C"
 
 #define DIM 100
 #define UNIT 1.f
-#define TEXSIZE 256
+#define TEXSIZE 256 
 #define GW GEOMETRIC_WAVES
 #define NMW NORMALMAP_WAVES
 
@@ -25,19 +25,19 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
     float wl = p.wavelength;
     wl = frand() * (2.f * wl - 0.7f * wl) + 0.7f * wl;
 
-    static float angle = frand() * M_PI - M_PI_2;
+    static float angle = frandf() * M_PI_4;// - M_PI_2;
     float c = cos(angle);
     float s = sin(angle);
-    Vector2 dir(c * p.wave_dir.x - s * p.wave_dir.y,
-                s * p.wave_dir.x + c * p.wave_dir.y);
-
+    Vector2 dir(c * p.wave_dir.x,
+                s * p.wave_dir.y);
+    dir = Vector2::fromAngle(frandf() * M_PI_4); 
     float st = p.steepness;
 
     params.wavelength = wl;
     params.steepness = st;
     params.speed = sqrt(9.81f * 2.f*M_PI/wl)*wl*p.speed; 
     params.kAmpOverLen = p.kAmpOverLen;
-    params.wave_dir = dir;
+    params.wave_dir = dir.unit();
 }
 
 WaterEngine::WaterEngine()
@@ -49,7 +49,7 @@ WaterEngine::WaterEngine()
     m_params.wavelength = 16.f;
     m_params.steepness = 1.f;
     m_params.kAmpOverLen = 0.05f;
-    m_params.speed = 0.1f;
+    m_params.speed = 0.06f;
     m_params.wave_dir = Vector2(1.f, 0.8f).unit();
 
     // initialize waves
@@ -128,7 +128,7 @@ WaterEngine::WaterEngine()
             "       float phi = waves[i+2] * omega;"          // Phase
             "       float k = waves[i+1];"
             "       float term = omega * dot(vec2(waves[i+4], waves[i+5]), uv) + phi * time;"
-            "       float C = cos(term);"
+            "       float C = cos(term);"//(2.0*PI);"
             "       float S = sin(term);"
             "       float val = pow(0.5 * (S + 1.0), k - 1.0) * C;"
             "       val = omega * A * k * val;"
@@ -136,14 +136,14 @@ WaterEngine::WaterEngine()
             "                 waves[i+5] * val,"
             "                 0.0);"
             "   }"
-            "   normalize(N);" 
+            "   N = normalize(N);" 
             "}"
 
             "void main(void)"
             "{"
             "   vec3 N;"
-            "   calc_normal(gl_FragCoord.st/256.0, N);"
-            "   N = (N * 0.5) + vec3(0.5);"
+            "   calc_normal(gl_FragCoord.st/128.0, N);"
+            "   N = (N * 0.5) + 0.5;"
             "   gl_FragColor = vec4(N.xyz, 1.0);"
             "}");
 
@@ -260,17 +260,16 @@ void WaterEngine::initializeWaves()
 
     // initialize normal map waves
     for (int i = 0; i < NMW; i++) {
-        float wl = m_nm_waves[i].params.wavelength = frandf() * (0.8f - 0.3f) + 0.3f; 
+        float wl = m_nm_waves[i].params.wavelength = frandf() * 0.5f + 0.3;
+        m_nm_waves[i].params.wave_dir = Vector2::randomDirection();
         m_nm_waves[i].params.steepness = frandf() * 2.f + 1.f;
         m_nm_waves[i].params.speed = 0.1f * sqrt(M_PI/wl);
         m_nm_waves[i].params.kAmpOverLen = 0.02f;
-        m_nm_waves[i].params.wave_dir = Vector2::randomDirection();
     }
 }
 
 void WaterEngine::render(float elapsed_time)
 {
-    /* generate normal map */
     // store current viewport and projection matrix
     int vp[4];
     float proj[16];
