@@ -1,6 +1,5 @@
 #include "waterengine.h"
 #include <iostream>
-#include <stdlib.h>
 
 #ifndef __APPLE__
 extern "C"
@@ -10,6 +9,11 @@ extern "C"
     void glGenBuffers (GLsizei, GLuint *);
     GLboolean glIsBuffer (GLuint);
     void glBufferData (GLenum, GLsizeiptr, const GLvoid *, GLenum);
+    void glBindFramebuffer(GLenum, GLuint);
+    void glFramebufferTexture2D(GLenum, GLenum, GLenum, GLuint, GLint);
+    GLenum glCheckFramebufferStatus(GLenum);
+    void glGenFramebuffers(GLsizei, GLuint *);
+    void glDeleteFramebuffers(GLsizei, const GLuint *);
 }
 #endif
 
