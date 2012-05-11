@@ -47,7 +47,8 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
 WaterEngine::WaterEngine()
 {
     // cornflower blue
-    glClearColor(0.39f, 0.58f, 0.93f, 1.f);
+//    glClearColor(0.39f, 0.58f, 0.93f, 1.f);
+    glClearColor(1.f, 1.f, 1.f, 1.f);
 
     // enable fog
     glFogi(GL_FOG_MODE, GL_EXP2);
@@ -290,10 +291,17 @@ void WaterEngine::initializeWaves()
     // initialize normal map waves
     for (int i = 0; i < NMW; i++) {
         float wl = m_nm_waves[i].params.wavelength = (frandf() * 0.5f + 0.3f);
-        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection());//.floor() * wl;
+#undef SHITTY_TILE
+#ifdef SHITTY_TILE
+        // tile but shitty
+        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection()*6.f).floor()/2.f * wl;
+#else   
+        // not shitty but not tiled
+        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection());
+#endif
         m_nm_waves[i].params.steepness = 5.f*(frandf() * 2.f + 1.f);
         m_nm_waves[i].params.speed = 0.05f * sqrt(M_PI/wl);
-        m_nm_waves[i].params.kAmpOverLen = 0.02f;
+        m_nm_waves[i].params.kAmpOverLen = 0.03f;
     }
 }
 
