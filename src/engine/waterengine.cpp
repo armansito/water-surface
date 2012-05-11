@@ -207,7 +207,7 @@ WaterEngine::WaterEngine()
 
             "       float WA = omega * A;"
             "       float term = omega * dot(vec2(waves[i+4], waves[i+5]), vec2(P.x, P.z)) + phi * time;"
-            "       float C = cos(term);"
+            "       float C = cos(term)/6.0;"
             "       float S = sin(term);"
             "       B += vec3 (Qi * waves[i+4]*waves[i+4] * WA * S,"
             "                  Qi * waves[i+4] * waves[i+5] * WA * S,"
@@ -260,10 +260,13 @@ WaterEngine::WaterEngine()
             "{"
             "   vec3 N = texture2D(normalmap, texcoord*0.125).xyz * 2.0 - 1.0;"
             "   N = normalize(N);"
-            "   vec3 ambient = vec3(0.39, 0.43, 0.93);"
-            "   vec3 diffuse = vec3(0.0, 0.2, 1.0) * clamp(dot(N, lightv), 0.0, 1.0);"
-            "   vec3 specular = vec3(1.0) * pow(clamp(dot(reflect(lightv, N), viewv), 0.0, 1.0), 50.0);"
-            "   gl_FragColor = vec4(0.2 * ambient + 0.4* diffuse + specular, 1.0);"
+            "   vec3 specular = vec3(1.0) * pow(clamp(dot(reflect(normalize(lightv), N), viewv), 0.0, 1.0), 50.0);"
+            "   vec3 oceanblue = vec3(0.0, 0.0, 0.4);"
+            "   vec3 skyblue = vec3(0.39, 0.52, 0.93) * 0.9;"
+            "   const float R_0 = 0.4;"
+            "   float fresnel = R_0 + (1.0 - R_0) * pow((1.0 - dot(-normalize(viewv), N)), 5.0);"
+            "   fresnel = max(0.0, min(fresnel, 1.0));"
+            "   gl_FragColor = vec4(mix(oceanblue, skyblue, fresnel) + specular, 1.0);"
             "}");
     m_waveprog->link();
 }
@@ -287,7 +290,7 @@ void WaterEngine::initializeWaves()
     // initialize normal map waves
     for (int i = 0; i < NMW; i++) {
         float wl = m_nm_waves[i].params.wavelength = (frandf() * 0.5f + 0.3f);
-        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection()*3.f).floor() * wl;
+        m_nm_waves[i].params.wave_dir = (Vector2::randomDirection());// * 3.f).floor() * wl;
         m_nm_waves[i].params.steepness = 5.f*(frandf() * 2.f + 1.f);
         m_nm_waves[i].params.speed = 0.05f * sqrt(M_PI/wl);
         m_nm_waves[i].params.kAmpOverLen = 0.02f;
