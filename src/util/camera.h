@@ -32,7 +32,7 @@ public:
     inline float far() const { return m_far; }
 
     inline void setCenter(const Vector3 &center) { m_translate = center; }
-    inline void setZoom(float z) { m_zoom = fmin(15.f, fmax(0.5f, z)); }
+    inline void setZoom(float z) { m_zoom = z; } 
     inline void setAngles(float hangle, float vangle) { m_hangle = hangle; m_vangle = vangle; }
     inline void setFovy(float fovy) { m_fovy = fovy; (this->*m_projfunc)(); }
     inline void setAspect(float aspect) { m_aspect = aspect; (this->*m_projfunc)(); }

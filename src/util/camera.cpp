@@ -90,5 +90,4 @@ void Camera::rotate(float hangle, float vangle)
 void Camera::zoom(float zoomf)
 {
     m_zoom += zoomf;
-    m_zoom = fmin(100.f, fmax(0.5f, m_zoom));
 }

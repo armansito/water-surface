@@ -345,6 +345,10 @@ void WaterEngine::render(float elapsed_time)
     glMultMatrixf(proj);
     glMatrixMode(GL_MODELVIEW);
 
+    glPushMatrix();
+
+    glRotatef(elapsed_time * 20.f, 0.f, 1.f, 0.f);
+
     /* render waves */
     glColor3f(1.f, 1.f, 1.f);
     glBindTexture(GL_TEXTURE_2D, m_normalmap);
@@ -363,6 +367,8 @@ void WaterEngine::render(float elapsed_time)
 
     m_waveprog->release();
     glBindTexture(GL_TEXTURE_2D, 0);
+
+    glPopMatrix();
 }
 
 
