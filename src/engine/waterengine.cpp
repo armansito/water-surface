@@ -41,7 +41,7 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
     params.steepness = st;
     params.speed = sqrt(9.81f * 2.f*M_PI/wl)*wl*p.speed; 
     params.kAmpOverLen = p.kAmpOverLen;
-    params.wave_dir = dir.unit();
+    params.wave_dir = Vector2::randomDirection();//dir.unit();
 }
 
 WaterEngine::WaterEngine()
@@ -74,8 +74,8 @@ WaterEngine::WaterEngine()
     // initialize parameters
     m_params.wavelength = 10.f;
     m_params.steepness = 0.8f;
-    m_params.kAmpOverLen = 0.03f;
-    m_params.speed = 0.06f;
+    m_params.kAmpOverLen = 0.02f;
+    m_params.speed = 0.15f;
     m_params.wave_dir = Vector2(1.f, 0.8f).unit();
 
     // initialize waves
