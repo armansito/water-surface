@@ -46,9 +46,7 @@ WaterEngine::Wave::Wave(const WaveParameters &p)
 
 WaterEngine::WaterEngine()
 {
-    // cornflower blue
-//    glClearColor(0.39f, 0.58f, 0.93f, 1.f);
-    glClearColor(1.f, 1.f, 1.f, 1.f);
+    glClearColor(0.59f, 0.78f, 0.93f, 1.f);
 
     // enable fog
     glFogi(GL_FOG_MODE, GL_EXP2);
