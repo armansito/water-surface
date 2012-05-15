@@ -289,7 +289,7 @@ void WaterEngine::initializeWaves()
     // initialize normal map waves
     for (int i = 0; i < NMW; i++) {
         float wl = m_nm_waves[i].params.wavelength = (frandf() * 0.5f + 0.3f);
-#undef SHITTY_TILE
+//#define SHITTY_TILE
 #ifdef SHITTY_TILE
         // tile but shitty
         m_nm_waves[i].params.wave_dir = (Vector2::randomDirection()*6.f).floor()/2.f * wl;
@@ -345,7 +345,7 @@ void WaterEngine::render(float elapsed_time)
 
     glPushMatrix();
 
-    glRotatef(elapsed_time * 20.f, 0.f, 1.f, 0.f);
+    glRotatef(elapsed_time * 10.f, 0.f, 1.f, 0.f);
 
     /* render waves */
     glColor3f(1.f, 1.f, 1.f);
